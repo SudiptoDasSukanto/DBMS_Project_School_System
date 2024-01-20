@@ -1,0 +1,37 @@
+create or replace function getNewFlightNo(airline in varchar2) return varchar2 as
+   arShortCode varchar2(2);
+	oldMaxFlightNo number(3);
+begin
+	if airline = 'Biman Bangladesh Airlines' then
+		arShortCode := 'BG';
+	elsif airline = 'Emirates' then
+		arShortCode := 'EK';
+	elsif airline = 'Singapore Airlines' then
+		arShortCode := 'SQ';
+	else
+		arShortCode := '--';
+	end if;
+	select nvl(max(substr(flt_no,3)),0) into oldMaxFlightNo
+		from fligts
+		where flt_no like arShortCode||'%';
+	oldMaxFlightNo := oldMaxFlightNo + 1;
+	return arShortCode||lpad(oldMaxFlightNo, 4, '0');
+end;
+/
+
+create or replace trigger trg_flt_bef_ins
+before insert or update on fligts
+for each row
+begin
+	:new.flt_no := getNewFlightNo(:new.flt_airline);
+end;
+/
+
+create or replace procedure addNewFlight(airline in varchar2, src in varchar2, dst in varchar2, dep in number, arr in number) as
+newFlightNo varchar2(6);
+begin
+	insert into fligts (flt_airline, flt_src, flt_dst, flt_dep, flt_arr)
+        values(airline, src,dst,dep,arr) returning flt_no into newFlightNo;
+    dbms_output.put_line('Congratulations! A new Flight '||newFlightNo||' is Inserted!');
+end;
+/
